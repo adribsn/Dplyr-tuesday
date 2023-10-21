@@ -1,0 +1,189 @@
+---
+title: "Dplyr homework"
+author: "Adrien Bouisson"
+format: html
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+here::i_am("Dplyr-tuesday.Rproj")
+library(here)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
+# Exercise 1
+
+## Question 1
+
+```{r}
+#| echo: false
+#| message: false
+spotify <- readRDS('top-spotify-hits-2000-2019.Rds')
+```
+
+```{r}
+#| echo: false
+#| message: false
+s <- count(spotify%>% distinct(song) )
+a <- count(spotify%>% distinct(artist) )
+g <- count(spotify %>% distinct(genre) )
+a 
+g
+s
+```
+
+The data set contains `r s` songs The data set contains `r a` artist The data set contains `r g` genre
+
+## Question 2
+
+```{r}
+songs_per_year <- spotify %>%
+  group_by(year) %>%
+  summarize(song = n()) %>%
+  arrange(year)
+knitr::kable(songs_per_year, caption = "Number of Songs per Year")
+```
+
+## Question 3
+
+```{r}
+#| echo: false
+#| message: false
+spotify |> 
+  distinct(song, artist) |> 
+  count(artist) |> 
+  slice_max(n)
+```
+
+```{r}
+#| echo: false
+#| message: false
+most_popular_artist <- spotify %>%
+  group_by(artist) %>%
+  summarize(num_songs = n()) %>%
+  arrange(desc(num_songs)) %>%
+  slice(max(1))
+most_popular_artist_name <- most_popular_artist$artist
+cat("The most popular artist in the data set is:", most_popular_artist_name, "\n")
+
+```
+
+## Question 4
+
+Compute the minimum, maximum, mean and median bpm as well as the number of songs, for each musical genre.
+
+```{r}
+#| echo: false
+#| message: false
+spotify |>
+  distinct(song, tempo, .keep_all = TRUE) |> 
+  group_by(genre) |> 
+  summarise(mean(tempo), median(tempo), max(tempo), min(tempo)) |>
+  knitr::kable()
+```
+
+## Question 5
+
+Compute the median energy (nrgy) and the median danceability (dnce) per year in a single data frame.
+
+```{r}
+#| echo: false
+#| message: false
+n_nrgy_dnce_y <- (spotify %>% distinct(year, energy, danceability))
+table_dnce_nrgy <- n_nrgy_dnce_y %>% 
+  group_by(year) %>%
+  summarise(nrgy_m = median(energy), dnce_m = median(danceability))
+knitr::kable(table_dnce_nrgy)
+```
+```{r}
+dnce_me <- (spotify %>% distinct(year, danceability))
+```
+
+# Exercise 2
+
+## Question 1
+
+Age at enrollment and Marital status
+
+```{r}
+#| echo: false
+#| message: false
+dropout <- readRDS('dropout.rds')
+```
+
+```{r}
+median_age <- dropout%>%
+  group_by(`Marital status`, Gender)%>%
+  summarise(nb = n(), median_age = median(`Age at enrollment`))
+
+knitr::kable(median_age)
+```
+
+## Question 2
+
+We are going to transform the previous data to have three variables: one for the "Marital status", one for Female and one for Male.
+
+```{r}
+#| echo: false
+#| message: false
+median_of_age_2 <- median_age %>% pivot_wider (values_from = median_age, names_from = Gender)
+
+knitr::kable(median_of_age_2)
+```
+
+We have use tidyr through pivot_wider which enable to transform couple of column in row. It enable to improve readability and it simplifies analysis (easier subsetting).
+
+## Question 3
+
+The conditional mean of all variables related to "Curricular units" given the value of the Target variable.
+
+```{r}
+#| echo: false
+#| message: false
+conditional_mean <- dropout %>%
+  group_by(Target) %>%
+  summarise(across(starts_with("Curricular units"), mean))
+```
+
+```{r}
+#| echo: false
+#| message: false
+curricular_units <- dropout %>% select(Target, `Curricular units 1st sem (credited)`, `Curricular units 1st sem (enrolled)`, `Curricular units 1st sem (evaluations)`, `Curricular units 1st sem (grade)`, `Curricular units 1st sem (without evaluations)`, `Curricular units 2nd sem (credited)`, `Curricular units 2nd sem (enrolled)`, `Curricular units 2nd sem (evaluations)`, `Curricular units 2nd sem (grade)`, `Curricular units 2nd sem (without evaluations)`)
+curricular_units_moy <- curricular_units %>%
+  group_by(Target) %>%
+  summarise(across(where(is.numeric), mean))
+knitr::kable(curricular_units_moy)
+
+```
+
+## Question 4
+
+For this question, we use pivot_function by tidyr because pivot functions are valuable tools for data manipulation in R, allowing you to restructure your data to fit the needs of your analysis, visualization, and modeling tasks.
+
+```{r}
+#| echo: false
+#| message: false
+pivoted_data <- dropout %>%
+  pivot_wider(names_from = Target, values_from = Target)
+```
+
+```{r}
+#| echo: false
+#| message: false
+curricular_units_moy2 <- curricular_units_moy %>%
+  pivot_longer(starts_with("Curricular unit"), names_to = "Units") %>%
+  pivot_wider(names_from = Target)
+knitr::kable(curricular_units_moy2) 
+```
+
+```{r}
+#| echo: false
+#| message: false
+curricular_units_moy2 <- curricular_units_moy %>%
+  pivot_longer(starts_with("Curricular unit"), names_to = "Units") %>%
+  pivot_wider(names_from = Target)
+```
